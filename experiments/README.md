@@ -136,3 +136,4 @@ TranslateGemma models are designed to handle translation tasks across 55 languag
 | Notebook Name | Description |
 | :--- | :--- |
 | [[TranslateGemma]Example.ipynb]([TranslateGemma]Example.ipynb) | Guide to inference with TranslateGemma via Hugging Face |
+| [[TranslateGemma]Using_with_Transformersjs.ipynb]([TranslateGemma]Using_with_Transformersjs.ipynb) | Guide to inference with TranslateGemma via [Transformers.js](https://github.com/huggingface/transformers.js) |
