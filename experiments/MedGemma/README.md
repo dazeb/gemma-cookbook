@@ -12,3 +12,4 @@ This folder is organized into several categories, each focusing on a speicific a
 | Notebook Name | Description |
 :-------------- | ----------- |
 | [[MedGemma]Inference_using_HuggingFace.ipynb]([MedGemma]Inference_using_HuggingFace.ipynb) | A simple AI tool that checks chest X-ray images to predict if the person is likely a smoker or non-smoker, based on visible lung patterns and signs using MedGemma |
+| [[MedGemma]Inference_using_Ollama.ipynb]([MedGemma]Inference_using_Ollama.ipynb) | Run inference with X-ray images on MedGemma model using [Ollama Python library](https://github.com/ollama/ollama-python). |
