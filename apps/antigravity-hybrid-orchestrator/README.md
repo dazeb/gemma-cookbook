@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/banner.svg" alt="Antigravity Hybrid Gauntlet — Gemini 3.8 Flash · Gemma 4 On-Device" width="100%" />
+<img src="assets/banner.svg" alt="Antigravity Hybrid Orchestrator — Gemini 3.8 Flash · Gemma 4 On-Device" width="100%" />
 
 <br/>
 
@@ -11,11 +11,11 @@
 
 ---
 
-![Antigravity Hybrid Gauntlet Demo](assets/demo.gif)
+![Antigravity Hybrid Orchestrator Demo](assets/demo.gif)
 
-**Antigravity Hybrid Gauntlet** is a hybrid cloud/on-device security auditing and code-remediation tool built with [`google-antigravity`](https://pypi.org/project/google-antigravity/) and [`litert-lm`](https://pypi.org/project/litert-lm/). It pairs **Gemini 3.8 Flash** as a one-shot Cloud Chief Architect with **Gemma 4 26B** running locally on your Apple Silicon Metal GPU as an adversarial multi-agent remediation swarm.
+**Antigravity Hybrid Orchestrator** is a hybrid cloud/on-device security auditing and code-remediation tool built with [`google-antigravity`](https://pypi.org/project/google-antigravity/) and [`litert-lm`](https://pypi.org/project/litert-lm/). It pairs **Gemini 3.8 Flash** as a one-shot Cloud Chief Architect with **Gemma 4 26B** running locally on your own machine as an adversarial multi-agent remediation swarm.
 
-Run it with zero arguments to launch the built-in 3-file security gauntlet, or point it at **your own Python files and test suite** with `--files` and `--test-cmd`.
+Run it with zero arguments to launch the built-in built-in 3-file security audit, or point it at **your own Python files and test suite** with `--files` and `--test-cmd`.
 
 ---
 
@@ -31,7 +31,7 @@ Each on-device **Gemma 4** turn runs inside an isolated, stateless 4,096-token c
 
 ### 2. What Is Sent to Gemini (AST Signatures Only — 0 Bytes of Function Bodies or Secrets)
 
-Before calling **Gemini 3.8 Flash**, [`extract_public_skeleton()`](hybrid_gauntlet.py) parses each target file with Python's `ast` module and extracts **only** module imports, global variable names, and function/class signatures — stripping 100% of function bodies, SQL queries, and string literals (such as hardcoded API keys):
+Before calling **Gemini 3.8 Flash**, [`extract_public_skeleton()`](hybrid_orchestrator.py) parses each target file with Python's `ast` module and extracts **only** module imports, global variable names, and function/class signatures — stripping 100% of function bodies, SQL queries, and string literals (such as hardcoded API keys):
 
 ```text
 ▸ SENT TO GEMINI (extracted via ast.parse — 0 bytes of implementation bodies or secret literals):
@@ -72,7 +72,7 @@ From those ~50 tokens of AST signatures, **Gemini 3.8 Flash** infers the vulnera
 ]
 ```
 
-Once Gemini emits this blueprint, **the cloud session goes `IDLE`**. Every remaining step — reading the full private source files, authoring competing patches (`Builder A` vs `Builder B`), judging candidates (`Blind Critic`), and iterating against the test suite — runs **100% locally on Gemma 4 26B at `$0.00`**.
+Once Gemini emits this blueprint, **the cloud session goes `IDLE`**. Every remaining step — reading the full private source files, authoring competing patches (`Builder A` vs `Builder B`), judging candidates (`Blind Critic`), and iterating against the test suite — runs **100% on-device on Gemma 4, with no further cloud calls**.
 
 ---
 
@@ -81,10 +81,10 @@ Once Gemini emits this blueprint, **the cloud session goes `IDLE`**. Every remai
 | Persona | Model & Runtime | Input Context | Responsibility | Token Share |
 | :--- | :--- | :--- | :--- | :--- |
 | **◆ Cloud Architect** | `Gemini 3.8 Flash`<br/>(`LocalAgentConfig`) | **AST skeletons only**<br/>(`imports`, `globals`, `defs`) | Diagnoses CWE class (`role`), prescribes fix (`strategy`), and locks API contract (`invariant`), then goes **`IDLE`**. | ~150 cloud tokens<br/>*(~2–4% of run)* |
-| **◈ Red-Team Probe** | Subprocess Runner<br/>([`gauntlet_tests.py`](sandbox/gauntlet_tests.py) or `--test-cmd`) | Local target module | Executes the verification suite against the unpatched code first to **prove the vulnerability is real**. | Local CPU |
-| **◈ Builder A (`minimal`)** | `Gemma 4 26B`<br/>(`LiteRTAgentConfig`) | Full private source + Gemini Blueprint + failure trace | Authors the smallest surgical patch that satisfies Gemini's `strategy` and `invariant`. | `$0.00` · Metal GPU |
-| **◈ Builder B (`defensive`)** | `Gemma 4 26B`<br/>(`LiteRTAgentConfig`) | Full private source + Gemini Blueprint + failure trace | Authors a defensive rewrite with explicit input guards and invariants. | `$0.00` · Metal GPU |
-| **◈ Blind Critic** | `Gemma 4 26B`<br/>(`LiteRTAgentConfig`) | Shuffled `Candidate 1` vs `Candidate 2` + Gemini Blueprint | Evaluates both patches **blind** (labels stripped, order deterministically shuffled) and selects the safer candidate. | `$0.00` · Metal GPU |
+| **◈ Red-Team Probe** | Subprocess Runner<br/>([`verification_tests.py`](sandbox/verification_tests.py) or `--test-cmd`) | Local target module | Executes the verification suite against the unpatched code first to **prove the vulnerability is real**. | Local CPU |
+| **◈ Builder A (`minimal`)** | `Gemma 4 26B`<br/>(`LiteRTAgentConfig`) | Full private source + Gemini Blueprint + failure trace | Authors the smallest surgical patch that satisfies Gemini's `strategy` and `invariant`. | On-device |
+| **◈ Builder B (`defensive`)** | `Gemma 4 26B`<br/>(`LiteRTAgentConfig`) | Full private source + Gemini Blueprint + failure trace | Authors a defensive rewrite with explicit input guards and invariants. | On-device |
+| **◈ Blind Critic** | `Gemma 4 26B`<br/>(`LiteRTAgentConfig`) | Shuffled `Candidate 1` vs `Candidate 2` + Gemini Blueprint | Evaluates both patches **blind** (labels stripped, order deterministically shuffled) and selects the safer candidate. | On-device |
 
 ```text
    CLOUD ARCHITECT (Gemini 3.8 Flash)
@@ -94,7 +94,7 @@ Once Gemini emits this blueprint, **the cloud session goes `IDLE`**. Every remai
    └───────────────────────────────────┬─────────────────────────────────────┘
                                        │  Blueprint locked (Cloud goes IDLE)
    ════════════════════════════════════╪══════════════════════════════════════
-   ON-DEVICE SWARM (Gemma 4 26B · GPU) ▼              0 source lines uploaded
+   ON-DEVICE SWARM (Gemma 4 26B · on-device) ▼              0 source lines uploaded
    ┌─────────────────────────────────────────────────────────────────────────┐
    │  For each target file (sandbox or custom --files):                      │
    │                                                                         │
@@ -115,7 +115,7 @@ Once Gemini emits this blueprint, **the cloud session goes `IDLE`**. Every remai
 
 ## Run It on Your Own Code (`--files` & `--test-cmd`)
 
-`antigravity-hybrid-gauntlet` is not locked to the 3 built-in sandbox files. You can point both the headless CLI (`--minimal`) and the live Rich HUD at **any Python module(s) and test command** (`pytest`, `unittest`, or a standalone test script):
+`antigravity-hybrid-orchestrator` is not locked to the 3 built-in sandbox files. You can point both the headless CLI (`--minimal`) and the live Rich HUD at **any Python module(s) and test command** (`pytest`, `unittest`, or a standalone test script):
 
 ```bash
 # Headless console mode on your own module and test suite:
@@ -142,7 +142,7 @@ Once Gemini emits this blueprint, **the cloud session goes `IDLE`**. Every remai
           └─ Invariant: allow_request(client_id, cost)
       ⏸ Cloud session is now IDLE. Handing off blueprint to local Gemma 4...
 
-[2/2] On-Device Gauntlet (Gemma 4 26B · Metal GPU)
+[2/2] On-Device Verification Swarm (Gemma 4 26B · on-device)
   ✗ rate_limiter.py [CWE-362] reproduced flaw: AssertionError: Negative cost allowed caller to inflate rate-limit quo…
   ▸ rate_limiter.py Builder (minimal) authored 16-line patch
   ▸ rate_limiter.py Builder (defensive) authored 24-line patch
@@ -150,8 +150,8 @@ Once Gemini emits this blueprint, **the cloud session goes `IDLE`**. Every remai
   ✔ rate_limiter.py VERIFIED GREEN (1/1 adversarial checks passed)
 
 ==========================================================================
-GAUNTLET COMPLETE — 1/1 files verified green
-Token split (estimated) — Cloud: 211 tok (13.6%) | On-Device: 1,335 tok (86.4%, $0.00)
+RUN COMPLETE — 1/1 files verified green
+Token split (estimated) — Cloud: 211 tok (13.6%) | On-Device: 1,335 tok (86.4%)
 ==========================================================================
 ```
 
@@ -163,23 +163,25 @@ Token split (estimated) — Cloud: 211 tok (13.6%) | On-Device: 1,335 tok (86.4%
 
 ```bash
 git clone https://github.com/google-gemma/cookbook.git
-cd cookbook/apps/antigravity_hybrid_gauntlet
+cd cookbook/apps/antigravity-hybrid-orchestrator
 export GEMINI_API_KEY="your-gemini-api-key"
 ```
 
 Without a key, the tool still runs using a built-in offline blueprint and marks the HUD accordingly so you always know whether a live cloud call occurred.
 
-### 2. Preview the HUD immediately (no model, no key, no GPU required)
+### 2. Preview the HUD immediately (no model or API key required)
 
 ```bash
 ./run.sh --snapshot
 ```
 
-### 3. Download a Gemma 4 checkpoint & run the live gauntlet
+### 3. Download a Gemma 4 checkpoint & run the live audit
 
 ```bash
 python3 tools/fetch_model.py --model 26b    # ~15.8 GB — recommended (MoE: ~4B active params/tok)
-python3 tools/fetch_model.py --model e2b    # ~2.0 GB  — compact checkpoint for 16 GB machines
+python3 tools/fetch_model.py --model 12b    # ~8.0 GB
+python3 tools/fetch_model.py --model e4b    # ~4.0 GB
+python3 tools/fetch_model.py --model e2b    # ~2.0 GB  — most compact checkpoint
 ```
 
 ```bash
@@ -190,31 +192,34 @@ MODEL=e2b ./run.sh        # Run with the compact E2B checkpoint
 
 ---
 
-## Requirements & On-Device Memory Profile
+## Requirements
 
 | Requirement | Details |
 | :--- | :--- |
-| **OS** | macOS on Apple Silicon (`arm64`) for Metal GPU acceleration via `litert-lm` |
 | **Python** | Python 3.10+ (bootstrapped automatically into `.venv` by `run.sh`) |
-| **Memory** | 16 GB+ unified memory (`Gemma 4 26B` is `26B-A4B` Mixture-of-Experts and read-only `mmap`-backed: ~2.4 GB active Metal GPU buffers + ~3.0 GB clean mapped pages in flight from the 15.8 GB `.litertlm` file) |
-| **Disk** | 15.8 GB for `gemma4-26b` (`~/.litert-lm/models/gemma4-26b/model.litertlm`), or 2.0 GB for `gemma4-e2b` |
+| **Runtime** | `litert-lm` selects an available accelerator at runtime and falls back to CPU, so throughput varies by machine |
+| **Memory** | Scales with the checkpoint you pick: `gemma4-e2b` is the lightest option, `gemma4-26b` (`26B-A4B` Mixture-of-Experts, read-only `mmap`-backed) is the heaviest |
+| **Disk** | ~2.0 GB (`e2b`) up to ~15.8 GB (`26b`) under `~/.litert-lm/models/gemma4-<size>/model.litertlm` |
 | **Cloud** | `GEMINI_API_KEY` from [Google AI Studio](https://aistudio.google.com/apikey) |
+
+Set `MODEL` to choose a checkpoint (`26b`, `12b`, `e4b`, `e2b`), `LITERT_MODEL_PATH`
+to point at a specific file, or `LITERT_MODEL_DIR` to relocate the search root.
 
 ---
 
 ## Project Structure
 
 ```text
-antigravity_hybrid_gauntlet/
-├── quickstart_minimal.py         # Linear SDK console runner (supports --files & --test-cmd)
-├── hybrid_gauntlet.py            # Main orchestrator, AST skeleton extractor & 3-lane async swarm
-├── hud.py                        # 100×28 Rich terminal dashboard (◆ Gemini + ◈ Gemma hero panels)
-├── runtime_compat.py             # LiteRT-LM adapter for stateless, thinking-free 4K turns
-├── checkpoint.py                 # Header & size verifier for .litertlm model checkpoints
+antigravity-hybrid-orchestrator/
+├── quickstart_minimal.py     # Linear SDK console runner (supports --files & --test-cmd)
+├── hybrid_orchestrator.py    # Main orchestrator, AST skeleton extractor & 3-lane async swarm
+├── hud.py                    # 100×28 Rich terminal dashboard (◆ Gemini + ◈ Gemma hero panels)
+├── runtime_compat.py         # LiteRT-LM adapter for stateless, thinking-free 4K turns
+├── checkpoint.py             # Pre-flight presence check for .litertlm model checkpoints
 ├── sandbox/
-│   └── gauntlet_tests.py         # Built-in adversarial test suite (auth, billing, database)
+│   └── verification_tests.py # Built-in adversarial test suite (auth, billing, database)
 └── tools/
-    └── fetch_model.py            # Resumable HuggingFace checkpoint downloader (26b, 12b, e4b, e2b)
+    └── fetch_model.py        # Resumable HuggingFace checkpoint downloader (26b, 12b, e4b, e2b)
 ```
 
 ---
@@ -222,6 +227,7 @@ antigravity_hybrid_gauntlet/
 ## Honest Limitations
 
 - **Token counts are estimates for local turns.** `litert-lm` does not return token usage metadata, so local tokens are approximated at ~4 characters/token (`~` in the HUD). Cloud tokens use the API's `usage_metadata` when available.
+- **No cost measurement.** The tool reports the cloud/on-device token split only; it does not price API usage.
 - **AST skeleton privacy scope.** `extract_public_skeleton()` strips all function bodies, docstrings, and constant literals before calling Gemini, meaning only `import` names, top-level variable names, and `def`/`class` signatures are transmitted.
 - **Subprocess verification runs with user privileges.** Verification imports and executes the patched Python module in a local subprocess without container or syscall sandboxing. Use a container when running against untrusted repositories.
 - **Non-deterministic local sampling.** Each file lane runs up to `MAX_LANE_LOOPS=5` rounds, automatically reverts any candidate patch that fails to improve the passing test count, and exits non-zero if any file remains unfixed.
@@ -231,4 +237,8 @@ antigravity_hybrid_gauntlet/
 ## License
 
 Licensed under the [Apache License, Version 2.0](LICENSE); see [`NOTICE`](NOTICE).
-This is a reference implementation and demonstration project, **not an officially supported Google product**.
+
+---
+
+This is not an officially supported Google product. This project is not eligible for the [Google Open Source Software Vulnerability Rewards Program](https://bughunters.google.com/open-source-security).
+

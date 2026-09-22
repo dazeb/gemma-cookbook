@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Headless CLI quickstart for Antigravity Hybrid Gauntlet.
+"""Headless CLI quickstart for Antigravity Hybrid Orchestrator.
 
 Run the built-in 3-file demo:
     ./run.sh --minimal
@@ -27,7 +27,7 @@ import sys
 
 from google.antigravity import Agent, CapabilitiesConfig, LiteRTAgentConfig
 
-import hybrid_gauntlet as gc
+import hybrid_orchestrator as gc
 from runtime_compat import configure_isolated_litert_context
 
 MAX_LOOPS = 3
@@ -39,8 +39,8 @@ def one_line(text: str, limit: int = 70) -> str:
   return flat[:limit] + ("…" if len(flat) > limit else "")
 
 
-async def run_minimal_gauntlet(args=None) -> int:
-  """Executes the hybrid gauntlet workflow in console mode."""
+async def run_minimal_workflow(args=None) -> int:
+  """Executes the hybrid orchestration workflow in console mode."""
   if args is None:
     args = gc.parse_cli_args()
   configure_isolated_litert_context()
@@ -74,7 +74,7 @@ async def run_minimal_gauntlet(args=None) -> int:
 
   local_tokens = 0
   results: dict[str, bool] = {}
-  print(f"[2/2] On-Device Gauntlet ({gc.local_model_labels(model_path)[1]})")
+  print(f"[2/2] On-Device Verification Swarm ({gc.local_model_labels(model_path)[1]})")
 
   async with Agent(local_cfg) as gemma:
 
@@ -185,15 +185,15 @@ async def run_minimal_gauntlet(args=None) -> int:
   local_pct = (local_tokens / total_tokens * 100) if total_tokens else 0.0
 
   print("=" * 74)
-  print(f"GAUNTLET {'COMPLETE' if green == len(plan) else 'FINISHED WITH FAILURES'} — "
+  print(f"RUN {'COMPLETE' if green == len(plan) else 'FINISHED WITH FAILURES'} — "
         f"{green}/{len(plan)} files verified green")
   if note:
     print("NO CLOUD CALL WAS MADE — this run used the offline blueprint.")
   print(f"Token split (estimated) — Cloud: {cloud_tokens} tok ({cloud_pct:.1f}%) | "
-        f"On-Device: {local_tokens:,} tok ({local_pct:.1f}%, $0.00)")
+        f"On-Device: {local_tokens:,} tok ({local_pct:.1f}%)")
   print("=" * 74)
   return 0 if green == len(plan) else 1
 
 
 if __name__ == "__main__":
-  sys.exit(asyncio.run(run_minimal_gauntlet()))
+  sys.exit(asyncio.run(run_minimal_workflow()))

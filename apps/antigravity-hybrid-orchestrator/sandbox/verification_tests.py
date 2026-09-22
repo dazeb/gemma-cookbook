@@ -15,9 +15,9 @@
 """Verification test suite for the built-in sandbox modules.
 
 Usage:
-    python gauntlet_tests.py auth
-    python gauntlet_tests.py billing
-    python gauntlet_tests.py database
+    python verification_tests.py auth
+    python verification_tests.py billing
+    python verification_tests.py database
 
 Prints a single JSON line: {"passed": int, "failed": int, "failures": [str]}
 """

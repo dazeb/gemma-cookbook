@@ -13,13 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Runs the Antigravity Hybrid Gauntlet multi-agent tool & demo.
+# Runs the Antigravity Hybrid Orchestrator multi-agent tool & demo.
 #
 #   ./run.sh                    runs the full interactive Rich HUD demo
 #   ./run.sh --minimal          runs the linear SDK console quickstart
 #   ./run.sh --files <path.py> --test-cmd "<cmd>"
 #                               audits & patches your own Python file(s)
-#   MODEL=e2b ./run.sh          runs with the compact E2B Gemma 4 checkpoint
+#   MODEL=e2b ./run.sh          selects a checkpoint (26b, 12b, e4b or e2b)
 #
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -30,15 +30,6 @@ MODEL="${MODEL:-26b}"
 if ! python3 -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)'; then
   echo "error: Python 3.10+ is required (found $(python3 -V 2>&1))." >&2
   exit 1
-fi
-
-# litert-lm ships GPU wheels for Apple Silicon. Elsewhere the install may fail
-# or fall back to CPU, so say so up front rather than failing mysteriously.
-if [[ "$(uname -s)" != "Darwin" || "$(uname -m)" != "arm64" ]]; then
-  echo "note: this demo is developed and tested on Apple Silicon macOS."
-  echo "      On $(uname -s)/$(uname -m), litert-lm GPU acceleration may be"
-  echo "      unavailable and the local model will be slow or unsupported."
-  echo
 fi
 
 if [[ ! -x ./.venv/bin/python ]]; then
@@ -74,7 +65,7 @@ fi
 pkill -f "^${PWD}/\.venv/.*localharness" 2>/dev/null || true
 
 if [[ $# -eq 0 || "$1" == -* ]]; then
-  exec ./.venv/bin/python -u hybrid_gauntlet.py "$@"
+  exec ./.venv/bin/python -u hybrid_orchestrator.py "$@"
 else
   exec ./.venv/bin/python -u "$@"
 fi

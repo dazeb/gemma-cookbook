@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Antigravity Hybrid Gauntlet — Cloud Architect + On-Device Gemma 4 Swarm.
+"""Antigravity Hybrid Orchestrator — Cloud Architect + On-Device Gemma 4 Swarm.
 
 Usage:
     ./run.sh                  run the interactive Rich terminal HUD
@@ -64,12 +64,15 @@ def cloud_model_label() -> str:
   return " ".join(p.capitalize() if p.isalpha() else p for p in parts)
 
 
+MODEL_SIZES = ("26b", "12b", "e4b", "e2b")
+
+
 def local_model_labels(model_path: str) -> tuple[str, str]:
   """Returns (short, long) display names for the on-device checkpoint."""
   lowered = model_path.lower()
-  size = "26B" if "26b" in lowered else ("E2B" if "e2b" in lowered else "")
+  size = next((s.upper() for s in MODEL_SIZES if s in lowered), "")
   short = f"Gemma 4 {size}" if size else "Gemma 4"
-  long = f"{short} · Metal GPU"
+  long = f"{short} · on-device"
   return short, long
 
 
@@ -251,17 +254,22 @@ def resolve_model_path() -> str:
   if override and os.path.exists(os.path.expanduser(override)):
     return os.path.expanduser(override)
 
-  root = os.path.expanduser("~/.litert-lm/models")
+  root = os.path.expanduser(
+      os.environ.get("LITERT_MODEL_DIR", "~/.litert-lm/models")
+  )
   preferred = os.environ.get("MODEL", "26b").lower()
-  for name in (f"gemma4-{preferred}", "gemma4-26b", "gemma4-e2b"):
-    candidate = os.path.join(root, name, "model.litertlm")
+  ordered = [preferred] + [s for s in MODEL_SIZES if s != preferred]
+  for size in ordered:
+    candidate = os.path.join(root, f"gemma4-{size}", "model.litertlm")
     if os.path.exists(candidate):
       return candidate
   sys.exit(
       "\nNo Gemma 4 .litertlm checkpoint found.\n\n"
-      f"Looked in: {root}/gemma4-{{{preferred},26b,e2b}}/model.litertlm\n\n"
+      f"Looked in: {root}/gemma4-{{{','.join(ordered)}}}/model.litertlm\n\n"
       "Download one first:\n"
       "  python3 tools/fetch_model.py --model e2b    # ~2 GB\n"
+      "  python3 tools/fetch_model.py --model e4b    # ~4 GB\n"
+      "  python3 tools/fetch_model.py --model 12b    # ~8 GB\n"
       "  python3 tools/fetch_model.py --model 26b    # ~15.8 GB\n\n"
       "Or point to an existing checkpoint:\n"
       "  LITERT_MODEL_PATH=/path/to/model.litertlm ./run.sh\n\n"
@@ -309,7 +317,7 @@ async def run_tests(module: str) -> tuple[int, int, str]:
 
   proc = await asyncio.create_subprocess_exec(
       sys.executable,
-      os.path.join(WORKSPACE, "gauntlet_tests.py"),
+      os.path.join(WORKSPACE, "verification_tests.py"),
       module,
       stdout=asyncio.subprocess.PIPE,
       stderr=asyncio.subprocess.PIPE,
@@ -450,7 +458,7 @@ def load_suite_excerpts() -> dict[str, str]:
   """Extracts per-module check source code from the verification suite."""
   if WORKSPACE not in sys.path:
     sys.path.insert(0, WORKSPACE)
-  suite = importlib.import_module("gauntlet_tests")
+  suite = importlib.import_module("verification_tests")
 
   excerpts: dict[str, str] = {}
   for module, checks in suite.SUITES.items():
@@ -468,7 +476,7 @@ def load_suite_check_names() -> dict[str, set[str]]:
   """Maps each module to the function names of its verification checks."""
   if WORKSPACE not in sys.path:
     sys.path.insert(0, WORKSPACE)
-  suite = importlib.import_module("gauntlet_tests")
+  suite = importlib.import_module("verification_tests")
   return {
       module: {check.__name__ for check in checks}
       for module, checks in suite.SUITES.items()
@@ -680,7 +688,7 @@ class Swarm:
       return choice, reason
 
   async def run_lane(self, lane: hud.Lane, role: str) -> None:
-    """Executes the gauntlet loop for a single file lane."""
+    """Executes the verification loop for a single file lane."""
     path = resolve_lane_path(lane.name)
     with open(path) as handle:
       seed = handle.read()
@@ -784,7 +792,7 @@ def snapshot() -> None:
   state.focus_role = "blind critic"
   for line in [
       "  [#c586f0]✔[/] [bold #c586f0]CLOUD    [/] [#c586f0]Gemini spent 87 tokens and is now IDLE. It will not be called again.[/]",
-      "  [#4dd0e1]▸[/] [bold #4dd0e1]HANDOFF  [/] [#4dd0e1]3 × Gemma 4 26B now running the gauntlet locally — $0.00, no network.[/]",
+      "  [#4dd0e1]▸[/] [bold #4dd0e1]HANDOFF  [/] [#4dd0e1]3 × Gemma 4 26B now running the verification loop locally — no network calls.[/]",
       "  [#ff6b81]✗[/] [bold white]billing.py [/] [#ff6b81]test failed: balance drift: 10 debits, final balance 80.00[/]",
       "  [#4dd0e1]▸[/] [bold white]billing.py [/] [#4dd0e1]Builder A (minimal) authored 20-line patch (15 tok/s)[/]",
       "  [#4dd0e1]▸[/] [bold white]billing.py [/] [#4dd0e1]Builder B (defensive) authored 28-line patch (14 tok/s)[/]",
@@ -793,7 +801,7 @@ def snapshot() -> None:
   ]:
     state.focus_lines.append(line)
   state.focus_partial = ""
-  state.footer = "all 3 lanes passed gauntlet — 0 cloud tokens spent on execution"
+  state.footer = "all 3 lanes passed verification — 0 cloud tokens spent on execution"
 
   state.finished = True
   hud.console.print(hud.render(state))
@@ -905,10 +913,10 @@ async def opening_sequence(
   state.show("footer")
   await asyncio.sleep(0.28)
   state.push(
-      f"  [{LOCAL_C}]▸[/] [bold {LOCAL_C}]HANDOFF  [/] [{LOCAL_C}]{len(state.lanes)} × {state.local_model_long} take over the gauntlet — $0.00, offline.[/]"
+      f"  [{LOCAL_C}]▸[/] [bold {LOCAL_C}]HANDOFF  [/] [{LOCAL_C}]{len(state.lanes)} × {state.local_model_long} take over the verification loop — offline.[/]"
   )
   for lane in state.lanes:
-    lane.status = "starting gauntlet"
+    lane.status = "starting verification"
   await asyncio.sleep(0.35)
 
   return plan, frontier_tokens, note
@@ -919,7 +927,7 @@ def parse_cli_args(argv: list[str] | None = None):
   import argparse  # pylint: disable=import-outside-toplevel
 
   parser = argparse.ArgumentParser(
-      prog="hybrid_gauntlet",
+      prog="hybrid_orchestrator",
       description=(
           "Gemini 3.8 Flash (Cloud Architect) + Gemma 4 (Local Adversarial Swarm). "
           "Run with no arguments for the 3-file security demo, or pass --files and "
@@ -997,7 +1005,7 @@ async def main() -> int:
   if args.minimal:
     import quickstart_minimal  # pylint: disable=import-outside-toplevel
 
-    return await quickstart_minimal.run_minimal_gauntlet(args)
+    return await quickstart_minimal.run_minimal_workflow(args)
 
   configure_isolated_litert_context()
   if os.environ.get("DEMO_VERBOSE") != "1":
@@ -1021,7 +1029,7 @@ async def main() -> int:
 
   from rich.live import Live  # pylint: disable=import-outside-toplevel
 
-  print("Warming up Gemma 4 on Metal GPU & cloud session...", flush=True)
+  print("Warming up the local model and cloud session...", flush=True)
   async with Agent(gemma) as agent, Agent(cloud_cfg) as manager:
     try:
       await (await agent.chat("Reply OK")).text()

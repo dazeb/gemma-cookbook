@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Rich terminal HUD for Antigravity Hybrid Gauntlet."""
+"""Rich terminal HUD for Antigravity Hybrid Orchestrator."""
 
 from collections import deque
 from dataclasses import dataclass, field
@@ -83,7 +83,7 @@ class SwarmState:
 
   cloud_model: str = "Gemini 3.8 Flash"
   local_model: str = "Gemma 4 26B"
-  local_model_long: str = "Gemma 4 26B · Metal GPU"
+  local_model_long: str = "Gemma 4 26B · on-device"
 
   visible: set = field(default_factory=set)
   lanes_visible: int = 0
@@ -134,7 +134,7 @@ class SwarmState:
 
 def _task_banner(state: SwarmState) -> Text:
   banner = Text(" ")
-  banner.append(" ANTIGRAVITY HYBRID GAUNTLET ", style=f"bold black on {CLOUD}")
+  banner.append(" ANTIGRAVITY HYBRID ORCHESTRATOR ", style=f"bold black on {CLOUD}")
   banner.append("  TASK: ", style="bold white")
   banner.append(state.task_typed, style="white")
   return banner
@@ -216,12 +216,12 @@ def _budget_panel(state: SwarmState) -> Panel:
   legend.append("■ ", style=LOCAL)
   legend.append(f"{state.local_model.upper()}: ", style=f"bold {LOCAL}")
   legend.append(f"{state.local_tokens:>5,} tok ({local_pct:>4.1f}%) · ", style="white")
-  legend.append("$0.00 LOCAL", style=f"bold {GOOD}")
+  legend.append("local", style=f"bold {GOOD}")
 
   return Panel(
       Group(_split_bar(state), legend),
       title=(
-          "[bold white]TOKEN & COST SPLIT[/]  "
+          "[bold white]TOKEN SPLIT[/]  "
           f"[dim]([bold {CLOUD}]■ {state.cloud_model}[/] in Cloud  vs.  [bold {LOCAL}]■ {state.local_model}[/] On-Device)[/]"
       ),
       border_style=DIM,
@@ -282,7 +282,7 @@ def _gemma_panel(state: SwarmState) -> Panel:
 
   title = (
       f"[bold {LOCAL}]◈ {state.local_model.upper()} — ON-DEVICE WORKFORCE[/]  "
-      f"[dim](3 × {state.local_model_long} · Private · $0.00)[/]"
+      f"[dim](3 × {state.local_model_long} · Private · no cloud calls)[/]"
   )
   return Panel(
       Group(*rows) if rows else Text(""),
@@ -295,7 +295,7 @@ def _gemma_panel(state: SwarmState) -> Panel:
 def _footer_panel(state: SwarmState) -> Panel:
   if not state.finished:
     line = Text("  ")
-    line.append(state.footer or "Running local Gemma 4 gauntlet loop…", style="white")
+    line.append(state.footer or "Running local Gemma 4 verification loop…", style="white")
 
     how = Text("  ")
     how.append(
@@ -355,29 +355,29 @@ def _footer_panel(state: SwarmState) -> Panel:
   cost.append(f"◆ {state.cloud_model}: ", style=f"bold {CLOUD}")
   cost.append(f"~{state.frontier_tokens:,} tok (planned once, then idle)", style="white")
   cost.append(f"   ◈ {state.local_model}: ", style=f"bold {LOCAL}")
-  cost.append(f"~{state.local_tokens:,} tok · ", style="white")
-  cost.append("$0.00", style=f"bold {GOOD}")
+  cost.append(f"~{state.local_tokens:,} tok (on-device)", style="white")
 
   punch = Text("  ")
   if not state.cloud_called:
     punch.append(
-        "! NO CLOUD CALL WAS MADE — 100% local run, not a representative hybrid split.",
-        style=f"bold {BAD}",
+        "Note: no cloud call was made, so this run is entirely on-device.",
+        style=f"bold {WARN}",
     )
   else:
     punch.append(
-        f"★ ~{state.local_share * 100:.1f}% OF ALL TOKENS RAN LOCALLY ON {state.local_model.upper()} — NO SOURCE CODE LEFT THE DEVICE.",
+        f"~{state.local_share * 100:.1f}% on-device. Sent to {state.cloud_model}: "
+        "AST signatures only — no bodies or literals.",
         style=f"bold {WARN}",
     )
 
   if all_green and state.cloud_called:
-    title = f"[bold {GOOD}]✔ GAUNTLET COMPLETE — GEMINI + GEMMA HYBRID ORCHESTRATION SUCCEEDED[/]"
+    title = f"[bold {GOOD}]✔ RUN COMPLETE — GEMINI + GEMMA HYBRID ORCHESTRATION SUCCEEDED[/]"
     border = GOOD
   elif all_green:
-    title = f"[bold {WARN}]GAUNTLET COMPLETE — BUT NO CLOUD CALL WAS MADE[/]"
+    title = f"[bold {WARN}]RUN COMPLETE — BUT NO CLOUD CALL WAS MADE[/]"
     border = WARN
   else:
-    title = f"[bold {BAD}]GAUNTLET FINISHED WITH ISSUES — SEE BELOW[/]"
+    title = f"[bold {BAD}]RUN FINISHED WITH ISSUES — SEE BELOW[/]"
     border = BAD
 
   return Panel(
