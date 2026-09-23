@@ -25,7 +25,7 @@ A natural question when looking at a hybrid architecture is: **what is Gemini do
 
 ### 1. Why Local Gemma Alone Isn't Enough on Multi-File Codebases
 
-Each on-device **Gemma 4** turn runs inside an isolated, stateless 4,096-token context window ([`runtime_compat.py`](runtime_compat.py)) inspecting **one file at a time**. Without cross-module architectural direction:
+Each on-device **Gemma 4** turn runs inside an isolated, stateless 8,192-token context window ([`runtime_compat.py`](runtime_compat.py)) inspecting **one file at a time**. Without cross-module architectural direction:
 - When asked to fix a race condition in `billing.py`, an unconstrained local model frequently refactors module-level state (`balances`) into a class (`BillingService`), silently breaking callers and imports across the rest of the repository.
 - Local builders benefit substantially when given an explicit **CWE root-cause hypothesis** and **synchronization/remediation primitive** before generating candidate rewrites.
 
@@ -214,7 +214,7 @@ antigravity-hybrid-orchestrator/
 ├── quickstart_minimal.py     # Linear SDK console runner (supports --files & --test-cmd)
 ├── hybrid_orchestrator.py    # Main orchestrator, AST skeleton extractor & 3-lane async swarm
 ├── hud.py                    # 100×28 Rich terminal dashboard (◆ Gemini + ◈ Gemma hero panels)
-├── runtime_compat.py         # LiteRT-LM adapter for stateless, thinking-free 4K turns
+├── runtime_compat.py         # LiteRT-LM adapter for stateless, thinking-free 8K turns
 ├── checkpoint.py             # Pre-flight presence check for .litertlm model checkpoints
 ├── sandbox/
 │   └── verification_tests.py # Built-in adversarial test suite (auth, billing, database)
