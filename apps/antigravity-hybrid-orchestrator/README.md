@@ -179,8 +179,8 @@ Without a key, the tool still runs using a built-in offline blueprint and marks 
 
 ```bash
 python3 tools/fetch_model.py --model 26b    # ~15.8 GB — recommended (MoE: ~4B active params/tok)
-python3 tools/fetch_model.py --model 12b    # ~8.0 GB
-python3 tools/fetch_model.py --model e4b    # ~4.0 GB
+python3 tools/fetch_model.py --model 12b    # ~6.0 GB
+python3 tools/fetch_model.py --model e4b    # ~3.0 GB
 python3 tools/fetch_model.py --model e2b    # ~2.0 GB  — most compact checkpoint
 ```
 
@@ -199,7 +199,7 @@ MODEL=e2b ./run.sh        # Run with the compact E2B checkpoint
 | **Python** | Python 3.10+ (bootstrapped automatically into `.venv` by `run.sh`) |
 | **Runtime** | `litert-lm` selects an available accelerator at runtime and falls back to CPU, so throughput varies by machine |
 | **Memory** | Scales with the checkpoint you pick: `gemma4-e2b` is the lightest option, `gemma4-26b` (`26B-A4B` Mixture-of-Experts, read-only `mmap`-backed) is the heaviest |
-| **Disk** | ~2.0 GB (`e2b`) up to ~15.8 GB (`26b`) under `~/.litert-lm/models/gemma4-<size>/model.litertlm` |
+| **Disk** | ~2.0 GB (`e2b`), ~3.0 GB (`e4b`), ~6.0 GB (`12b`), or ~15.8 GB (`26b`) under `~/.litert-lm/models/gemma4-<size>/model.litertlm` |
 | **Cloud** | `GEMINI_API_KEY` from [Google AI Studio](https://aistudio.google.com/apikey) |
 
 Set `MODEL` to choose a checkpoint (`26b`, `12b`, `e4b`, `e2b`), `LITERT_MODEL_PATH`
